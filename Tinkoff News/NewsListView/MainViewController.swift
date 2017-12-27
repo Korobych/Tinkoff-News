@@ -8,30 +8,37 @@
 
 import UIKit
 
-class MainViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+class MainViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, RequestSenderDelegateProtocol, ModalViewControllerDelegate {
     @IBOutlet weak var newsTableView: UITableView!
+    @IBOutlet weak var syncButton: UIBarButtonItem!
     
     var from: Int = 0
     var to: Int = 20
     var newsListStorage: [Int:NewsListModel?] = [:]
     var fullPostsStorage: [CustomNewsTableViewCellData] = []
     var postStorage: SinglePostModel? = nil
-    let requestSender: RequestSenderProtocol = RequestSender()
+    var requestSender: RequestSenderProtocol = RequestSender()
+    var refreshControl: UIRefreshControl!
+    let internetFailAlert = UIAlertController(title: "Обновление данных", message: "Отсутствует подключение к сети.", preferredStyle: UIAlertControllerStyle.alert)
+    var selectedPost: Int!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        navbarStyleSetup()
-        tableViewStyleSetup()
         self.newsTableView.delegate = self
         self.newsTableView.dataSource = self
-        getNewsList()
+        self.requestSender.requestDelegate = self
+        navbarStyleSetup()
+        tableViewStyleSetup()
+        setRefreshControl()
+        self.internetFailAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil))
+        //
+        getNewsList(manual_update: false)
         
     }
     
-    
     @IBAction func syncButtonTapped(_ sender: Any) {
 //        logic dedicated for manual sync the news
-//        plus animation of rotation and bouncing is required
+//        plus animation of rotation is required
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -48,27 +55,43 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        // добавляем размытие фона вместе с открытием модульного окна
+        self.definesPresentationContext = true
+        self.providesPresentationContextTransitionStyle = true
+        self.overlayBlurredBackgroundView()
+        self.selectedPost = indexPath.row
+        self.fullPostsStorage[selectedPost].counter! += 1
+        self.performSegue(withIdentifier: "showModalView", sender: self)
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "NewsCell", for: indexPath) as! CustomNewsTableViewCell
         if let post = newsListStorage[indexPath.row] {
-            fullPostsStorage.append(CustomNewsTableViewCellData(id: post?.id, text: post?.text, publicationDate: post?.publicationDate, counter: 0, isViewed: false))
-            cell.setupCell(title: post?.text, counter: 0, isViewed: false)
+            cell.setupCell(title: post?.text.html2String, counter: fullPostsStorage[indexPath.row].counter! , isViewed: fullPostsStorage[indexPath.row].isViewed)
         }
         
         if indexPath.row == newsListStorage.count - 1{
             // realisation of pagination
-            getNewsList()
+            getNewsList(manual_update: false)
         }
         return cell
         
     }
+
     
-    func getNewsList() {
-        if newsListStorage.count == 0 {
+    func getNewsList(manual_update: Bool) {
+        syncButton.rotate()
+        if newsListStorage.count == 0{
             self.from = 0
             self.to = 20
+        }
+        if manual_update{
+            // upgrade logic
+            self.newsListStorage = [:]
+            self.fullPostsStorage = []
+            self.from = 0
+            self.to = 20
+            print("Manual update is started")
         }
         let config = RequestsFactory.GetNewsFromAPI.NewsListConfig(from: from, to: to)
         requestSender.send(config: config) { [weak self] (result) in
@@ -80,20 +103,28 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                     {
                         // offers pagination
                         self?.newsListStorage[item + number!] = items
+                        //
+                        self?.fullPostsStorage.append(CustomNewsTableViewCellData(id: items.id, text: items.text.html2String, publicationDate: items.publicationDate, counter: 0, isViewed: false))
                     }
+                    self?.syncButton.customView?.layer.removeAllAnimations()
                     self?.newsTableView.reloadData()
                     self?.from += 20
                     self?.to += 20
                 }
             case .error(let description):
+                // no internet error handling!!
                 print("Some error happend: \(description)")
             }
         }
     }
+    
+    func showAlert() {
+        DispatchQueue.main.async {
+            self.present(self.internetFailAlert, animated: true, completion: nil)
+            self.syncButton.customView?.layer.removeAllAnimations()
+        }
+    }
 }
-    
-    
-    
 
 
 extension MainViewController {
@@ -111,6 +142,100 @@ extension MainViewController {
         newsTableView.backgroundColor = #colorLiteral(red: 0.1298420429, green: 0.1298461258, blue: 0.1298439503, alpha: 1)
         newsTableView.separatorColor = UIColor.black
     }
+    
+    func setRefreshControl() {
+        refreshControl = UIRefreshControl()
+        refreshControl.attributedTitle = NSAttributedString(string: "Проверка обновлений", attributes: [NSAttributedStringKey.foregroundColor: UIColor.white])
+        refreshControl.tintColor = UIColor.white
+        refreshControl.addTarget(self, action: #selector(refresh), for: .valueChanged)
+        newsTableView.refreshControl = refreshControl
+    }
+    
+    // Настройка работы и + ее плавности refreshController'а
+    @objc func refresh(refreshControl: UIRefreshControl) {
+        getNewsList(manual_update: true)
+        let navBarHeight = (self.navigationController?.navigationBar.frame.size.height)!/2
+        let navBarWidth = self.navigationController?.navigationBar.frame.size.width
+        self.newsTableView.reloadData()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.refreshControl.endRefreshing()
+            self.navigationController?.navigationBar.frame = CGRect(x: 0, y: 0, width: navBarWidth!, height: navBarHeight)
+        }
+    }
+    
+    func overlayBlurredBackgroundView(){
+        let blurredBackgroundView = UIVisualEffectView()
+        blurredBackgroundView.frame = view.frame
+        blurredBackgroundView.effect = UIBlurEffect(style: .dark)
+        view.addSubview(blurredBackgroundView)
+    }
+    
+    func removeBlurredBackgroundView() {
+        for subview in view.subviews {
+            if subview.isKind(of: UIVisualEffectView.self) {
+                subview.removeFromSuperview()
+            }
+        }
+    }
+    
+    func refreshContent() {
+        DispatchQueue.main.async {
+            self.newsTableView.reloadData()
+        }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if let identifier = segue.identifier {
+            if identifier == "showModalView" {
+                if let viewController = segue.destination as? ModalPostViewController {
+                    viewController.delegate = self
+                    viewController.modalPresentationStyle = .overFullScreen
+                    // не обязательно
+                    viewController.listMass = fullPostsStorage
+                    //
+                    viewController.selectedTitle = fullPostsStorage[selectedPost].text
+                    viewController.selectedId = fullPostsStorage[selectedPost].id
+                }
+            }
+        }
+    }
 
+
+}
+// Кейс добавления анимации для элемента UIBarButtonItem
+extension UIBarButtonItem {
+    func rotate(duration: CFTimeInterval = 3) {
+        let rotateAnimation = CABasicAnimation(keyPath: "transform.rotation")
+        rotateAnimation.fromValue = 0.0
+        rotateAnimation.toValue = CGFloat(Double.pi * 2)
+        rotateAnimation.isRemovedOnCompletion = false
+        rotateAnimation.duration = duration
+        rotateAnimation.repeatCount = Float.infinity
+        self.customView?.layer.add(rotateAnimation, forKey: nil)
+        
+    }
+}
+// Исключения для обработки кейса наличия html-alike тайтлов из API
+extension Data {
+    var html2AttributedString: NSAttributedString? {
+        do {
+            return try NSAttributedString(data: self, options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil)
+        } catch {
+            print("error:", error)
+            return  nil
+        }
+    }
+    var html2String: String {
+        return html2AttributedString?.string ?? ""
+    }
+}
+
+extension String {
+    var html2AttributedString: NSAttributedString? {
+        return Data(utf8).html2AttributedString
+    }
+    var html2String: String {
+        return html2AttributedString?.string ?? ""
+    }
 }
 

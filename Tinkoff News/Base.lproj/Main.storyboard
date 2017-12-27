@@ -14,6 +14,9 @@
         <array key="Radomir Tinkov - Gilroy-ExtraBold.otf">
             <string>Gilroy-ExtraBold</string>
         </array>
+        <array key="Radomir Tinkov - Gilroy-Light.otf">
+            <string>Gilroy-Light</string>
+        </array>
     </customFonts>
     <scenes>
         <!--Main View Controller-->
@@ -25,7 +28,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="8iH-7r-pHg">
-                                <rect key="frame" x="0.0" y="64" width="375" height="603"/>
+                                <rect key="frame" x="0.0" y="116" width="375" height="551"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" accessoryType="disclosureIndicator" indentationWidth="10" reuseIdentifier="NewsCell" rowHeight="125" id="Abx-uD-6rg" customClass="CustomNewsTableViewCell" customModule="Tinkoff_News" customModuleProvider="target">
@@ -41,7 +44,7 @@
                                                     <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="black man" lineBreakMode="tailTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="x0Y-ab-MLH">
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="post content" lineBreakMode="tailTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="x0Y-ab-MLH">
                                                     <rect key="frame" x="13" y="11" width="329" height="75"/>
                                                     <fontDescription key="fontDescription" name="Gilroy-ExtraBold" family="Gilroy" pointSize="16"/>
                                                     <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
@@ -63,6 +66,7 @@
                                             <outlet property="PostTitle" destination="x0Y-ab-MLH" id="FR9-7e-pJQ"/>
                                             <outlet property="counterLabel" destination="yw8-R7-lwC" id="M1d-ln-Ond"/>
                                             <outlet property="postTitle" destination="x0Y-ab-MLH" id="7Z6-x0-hyx"/>
+                                            <segue destination="nfe-7F-YIH" kind="presentation" identifier="showModalView" trigger="accessoryAction" id="KZs-ve-S1K"/>
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>
@@ -91,34 +95,107 @@
                     </navigationItem>
                     <connections>
                         <outlet property="newsTableView" destination="8iH-7r-pHg" id="QRW-kH-q54"/>
+                        <outlet property="syncButton" destination="pYR-Xm-aRM" id="J2l-8r-viX"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="476" y="126.38680659670166"/>
         </scene>
-        <!--View Controller-->
+        <!--Modal Post View Controller-->
         <scene sceneID="rOh-9E-iUb">
             <objects>
-                <viewController id="nfe-7F-YIH" sceneMemberID="viewController">
+                <viewController id="nfe-7F-YIH" customClass="ModalPostViewController" customModule="Tinkoff_News" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Hax-lz-syE">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nTG-o4-SBZ">
+                                <rect key="frame" x="5" y="30" width="365" height="617"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bHZ-jE-NXy">
+                                        <rect key="frame" x="325" y="0.0" width="40" height="36"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                        <state key="normal" title="⨉">
+                                            <color key="titleColor" red="1" green="1" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="cancelButtonClicked:" destination="nfe-7F-YIH" eventType="touchUpInside" id="VmV-lL-v2N"/>
+                                        </connections>
+                                    </button>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Загрузка новости ..." lineBreakMode="tailTruncation" numberOfLines="4" baselineAdjustment="alignBaselines" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hcP-ct-7gz">
+                                        <rect key="frame" x="8" y="8" width="304" height="119"/>
+                                        <fontDescription key="fontDescription" name="Gilroy-ExtraBold" family="Gilroy" pointSize="18"/>
+                                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <wkWebView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="oge-ZZ-PjK">
+                                        <rect key="frame" x="0.0" y="143" width="365" height="474"/>
+                                        <color key="backgroundColor" red="0.20000000300000001" green="0.20000000300000001" blue="0.20000000300000001" alpha="1" colorSpace="calibratedRGB"/>
+                                        <color key="tintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                        <wkWebViewConfiguration key="configuration">
+                                            <audiovisualMediaTypes key="mediaTypesRequiringUserActionForPlayback" none="YES"/>
+                                            <wkPreferences key="preferences"/>
+                                        </wkWebViewConfiguration>
+                                    </wkWebView>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="z82-Np-eoj">
+                                        <rect key="frame" x="273" y="135" width="84" height="0.0"/>
+                                        <fontDescription key="fontDescription" name="Gilroy-Light" family="Gilroy" pointSize="18"/>
+                                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" red="0.20000000300000001" green="0.20000000300000001" blue="0.20000000300000001" alpha="1" colorSpace="calibratedRGB"/>
+                                <color key="tintColor" red="0.0" green="0.0" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                                <constraints>
+                                    <constraint firstItem="hcP-ct-7gz" firstAttribute="top" secondItem="nTG-o4-SBZ" secondAttribute="top" constant="8" id="2MK-rf-LWo"/>
+                                    <constraint firstAttribute="trailing" secondItem="hcP-ct-7gz" secondAttribute="trailing" constant="53" id="77f-wT-afA"/>
+                                    <constraint firstAttribute="trailing" secondItem="bHZ-jE-NXy" secondAttribute="trailing" id="9lV-J5-wCF"/>
+                                    <constraint firstItem="bHZ-jE-NXy" firstAttribute="leading" secondItem="hcP-ct-7gz" secondAttribute="trailing" constant="13" id="GJZ-s9-odk"/>
+                                    <constraint firstAttribute="bottom" secondItem="oge-ZZ-PjK" secondAttribute="bottom" id="IkM-sn-3Xa"/>
+                                    <constraint firstItem="oge-ZZ-PjK" firstAttribute="trailing" secondItem="bHZ-jE-NXy" secondAttribute="trailing" id="Okn-33-pYR"/>
+                                    <constraint firstItem="z82-Np-eoj" firstAttribute="leading" relation="lessThanOrEqual" secondItem="nTG-o4-SBZ" secondAttribute="leading" constant="273" id="W2K-IJ-RiP"/>
+                                    <constraint firstItem="oge-ZZ-PjK" firstAttribute="leading" secondItem="nTG-o4-SBZ" secondAttribute="leading" id="Yut-pq-JRC"/>
+                                    <constraint firstItem="hcP-ct-7gz" firstAttribute="top" secondItem="nTG-o4-SBZ" secondAttribute="top" constant="8" id="ey2-eI-kPU"/>
+                                    <constraint firstItem="z82-Np-eoj" firstAttribute="top" secondItem="hcP-ct-7gz" secondAttribute="bottom" constant="8" symbolic="YES" id="fRD-li-1XK"/>
+                                    <constraint firstItem="oge-ZZ-PjK" firstAttribute="top" secondItem="z82-Np-eoj" secondAttribute="bottom" constant="8" id="qHP-Vq-XcI"/>
+                                    <constraint firstItem="bHZ-jE-NXy" firstAttribute="top" secondItem="nTG-o4-SBZ" secondAttribute="top" id="qTn-st-hTP"/>
+                                    <constraint firstItem="hcP-ct-7gz" firstAttribute="leading" secondItem="nTG-o4-SBZ" secondAttribute="leading" constant="8" id="toF-AN-bFG"/>
+                                    <constraint firstItem="z82-Np-eoj" firstAttribute="top" secondItem="nTG-o4-SBZ" secondAttribute="top" constant="135" id="tzp-cU-UTA"/>
+                                    <constraint firstAttribute="trailing" secondItem="z82-Np-eoj" secondAttribute="trailing" constant="8" id="wtK-H9-S7R"/>
+                                    <constraint firstItem="z82-Np-eoj" firstAttribute="top" secondItem="hcP-ct-7gz" secondAttribute="bottom" constant="8" id="yA8-nQ-gBc"/>
+                                </constraints>
+                            </view>
+                        </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="QuD-zg-AVV" firstAttribute="trailing" secondItem="nTG-o4-SBZ" secondAttribute="trailing" constant="5" id="4PC-ms-iky"/>
+                            <constraint firstItem="QuD-zg-AVV" firstAttribute="bottom" secondItem="nTG-o4-SBZ" secondAttribute="bottom" constant="20" id="7eW-Y6-cde"/>
+                            <constraint firstItem="nTG-o4-SBZ" firstAttribute="centerX" secondItem="Hax-lz-syE" secondAttribute="centerX" id="KSo-rB-UkK"/>
+                            <constraint firstItem="nTG-o4-SBZ" firstAttribute="top" secondItem="QuD-zg-AVV" secondAttribute="top" constant="10" id="OHp-BO-F76"/>
+                            <constraint firstItem="nTG-o4-SBZ" firstAttribute="leading" secondItem="QuD-zg-AVV" secondAttribute="leading" constant="5" id="jq9-KK-aRX"/>
+                        </constraints>
                         <viewLayoutGuide key="safeArea" id="QuD-zg-AVV"/>
                     </view>
+                    <connections>
+                        <outlet property="cancelButton" destination="bHZ-jE-NXy" id="4WD-Cp-KB9"/>
+                        <outlet property="dateLabel" destination="z82-Np-eoj" id="HqR-gf-cXZ"/>
+                        <outlet property="modalView" destination="nTG-o4-SBZ" id="skv-Q5-kiU"/>
+                        <outlet property="titleLabel" destination="hcP-ct-7gz" id="xd5-wK-DFP"/>
+                        <outlet property="webView" destination="oge-ZZ-PjK" id="p7D-Co-6wu"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="VTF-Qg-4eO" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1274" y="125"/>
+            <point key="canvasLocation" x="1371.5" y="124.5"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="i1u-Bv-Wa5">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="OPL-QP-yXA" sceneMemberID="viewController">
                     <toolbarItems/>
-                    <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="8Nr-LH-Uwk">
-                        <rect key="frame" x="0.0" y="20" width="375" height="44"/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" largeTitles="YES" id="8Nr-LH-Uwk">
+                        <rect key="frame" x="0.0" y="20" width="375" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <color key="barTintColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                     </navigationBar>

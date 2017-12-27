@@ -13,12 +13,17 @@ enum Result<T> {
     case error(String)
 }
 
+protocol RequestSenderDelegateProtocol: class {
+    func showAlert()
+}
+
 protocol RequestSenderProtocol {
+    weak var requestDelegate: RequestSenderDelegateProtocol? {get set}
     func send<Model, Parser>(config: RequestConfig<Model, Parser>, completionHandler: @escaping (Result<Model>) -> Void )
 }
 
 class RequestSender: RequestSenderProtocol {
-    
+    weak var requestDelegate: RequestSenderDelegateProtocol?
     let session = URLSession.shared
     let queue: DispatchQoS.QoSClass = .userInitiated
     var async: Bool
@@ -38,9 +43,14 @@ class RequestSender: RequestSenderProtocol {
         let task = session.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
             if let error = error {
                 completionHandler(Result.error(error.localizedDescription))
+                DispatchQueue.main.async {
+                    //bad internet case
+                    self.requestDelegate?.showAlert()
+                }
                 return
             }
-            guard let data = data, let parsedModel = config.parser.parse(data: data) else {
+            guard let data = data,
+                let parsedModel = config.parser.parse(data: data) else {
                 completionHandler(Result.error("Received data can not be parsed"))
                 return
             }
@@ -48,7 +58,7 @@ class RequestSender: RequestSenderProtocol {
             completionHandler(Result.success(parsedModel))
         }
         
-        if async == true {
+        if async {
             let queue = self.queue
             DispatchQueue.global(qos: queue).async {
                 task.resume()

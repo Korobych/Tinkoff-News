@@ -10,7 +10,7 @@ import Foundation
 
 struct SinglePostModel {
     let postText: String
-    let modificaredTime: Int
+    let modificatedTime: Int
 }
 
 class SinglePostParser: ParserProtocol {
@@ -47,7 +47,7 @@ class SinglePostParser: ParserProtocol {
                 return nil
             }
             
-            return SinglePostModel(postText: content, modificaredTime: dateInMillisec)
+            return SinglePostModel(postText: content, modificatedTime: dateInMillisec)
         }
         catch
         {

@@ -30,6 +30,7 @@ class SinglePostRequest: RequestProtocol {
             print("Can't create url with current parameters...")
             return
         }
+        print(url)
         urlRequest = URLRequest(url: url)
     }
 }
