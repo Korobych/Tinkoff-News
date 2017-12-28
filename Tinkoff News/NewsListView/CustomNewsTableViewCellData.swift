@@ -38,8 +38,6 @@ class CustomNewsTableViewCellData : NewsListCellProtocol{
             let date = "Date not stayed"
             self.publicationDate = date
         }
-        
-        
     }
 }
 

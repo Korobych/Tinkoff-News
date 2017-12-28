@@ -15,20 +15,9 @@ class CustomNewsTableViewCell: UITableViewCell {
     
     func setupCell(title: String?, counter: Int = 0, isViewed: Bool = false) {
         postTitle.text = title
-        counterLabel.text = String(counter) + " кликов"
+        counterLabel.text = String(counter)
         if isViewed {
             // Logic with fading already seen posts
         }
     }
-    
-    override func awakeFromNib() {
-        super.awakeFromNib()
-        // Initialization code
-    }
-
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-
-    }
-
 }

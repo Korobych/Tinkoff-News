@@ -12,15 +12,14 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     @IBOutlet weak var newsTableView: UITableView!
     @IBOutlet weak var syncButton: UIBarButtonItem!
     
-    var from: Int = 0
-    var to: Int = 20
     var newsListStorage: [Int:NewsListModel?] = [:]
     var fullPostsStorage: [CustomNewsTableViewCellData] = []
-    var postStorage: SinglePostModel? = nil
     var requestSender: RequestSenderProtocol = RequestSender()
     var refreshControl: UIRefreshControl!
     let internetFailAlert = UIAlertController(title: "Обновление данных", message: "Отсутствует подключение к сети.", preferredStyle: UIAlertControllerStyle.alert)
     var selectedPost: Int!
+    var from: Int = 0
+    var to: Int = 20
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,7 +111,6 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                     self?.to += 20
                 }
             case .error(let description):
-                // no internet error handling!!
                 print("Some error happend: \(description)")
             }
         }
@@ -123,6 +121,10 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             self.present(self.internetFailAlert, animated: true, completion: nil)
             self.syncButton.customView?.layer.removeAllAnimations()
         }
+    }
+    
+    func counterFixer() {
+        self.fullPostsStorage[selectedPost].counter! -= 1
     }
 }
 
@@ -165,15 +167,18 @@ extension MainViewController {
     
     func overlayBlurredBackgroundView(){
         let blurredBackgroundView = UIVisualEffectView()
+        blurredBackgroundView.tag = 123
         blurredBackgroundView.frame = view.frame
         blurredBackgroundView.effect = UIBlurEffect(style: .dark)
         view.addSubview(blurredBackgroundView)
     }
     
     func removeBlurredBackgroundView() {
-        for subview in view.subviews {
-            if subview.isKind(of: UIVisualEffectView.self) {
-                subview.removeFromSuperview()
+        for v in (view?.subviews)!
+        {
+            if v.tag == 123
+            {
+                v.removeFromSuperview()
             }
         }
     }
