@@ -12,7 +12,7 @@ import WebKit
 protocol ModalViewControllerDelegate: class {
     func removeBlurredBackgroundView()
     func refreshContent()
-    func counterFixer()
+    func noInternetFixer()
 }
 
 struct Post {
@@ -23,7 +23,7 @@ struct Post {
     var content: String?
 }
 
-class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol{
+class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, WKNavigationDelegate, UIScrollViewDelegate{
     
     weak var delegate: ModalViewControllerDelegate?
     var postsMass: [Post] = []
@@ -50,12 +50,15 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol{
     override func viewDidLoad() {
         super.viewDidLoad()
         self.requestSender.requestDelegate = self
+        self.webView.navigationDelegate = self
+        self.webView.scrollView.delegate = self
         view.backgroundColor = UIColor.clear
         view.isOpaque = false
         modalView.layer.cornerRadius = 15
         modalView.layer.masksToBounds = true
         activityIndicator.isHidden = false
         webView.isOpaque = false
+        webView.backgroundColor = UIColor(red:0.22, green:0.22, blue:0.22, alpha:1.0)
         //
         loadContent()
     }
@@ -102,29 +105,48 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol{
             self.activityIndicator.stopAnimating()
             self.activityIndicator.isHidden = true
             // function to decrease views counter
-            self.delegate?.counterFixer()
+            self.delegate?.noInternetFixer()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2){
             self.cancelButtonClicked(self)
         }
     }
     
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.navigationType == .linkActivated  {
+            if let url = navigationAction.request.url,
+                let host = url.host, !host.hasPrefix("www.google.com"),
+                UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+                print(url)
+                print("Redirected to browser. No need to open it locally")
+                decisionHandler(.cancel)
+            } else {
+                print("Open it locally")
+                decisionHandler(.allow)
+            }
+        } else {
+            print("not a user click")
+            decisionHandler(.allow)
+        }
+    }
+    
+    func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+        scrollView.pinchGestureRecognizer?.isEnabled = false
+    }
+    
     func htmlPageConstruct(bodyPart: String) -> String{
         let currentHTML = """
         <head>
-        <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+        <link href='https://fonts.googleapis.com/css?family=Montserrat:medium' rel='stylesheet'>
         <style>
-        @font-face { font-family: 'Metropolis'; src: url('Metropolis-ExtraBold.otf')}
-        body { font-family: 'Roboto', sans-serif; font-size:35pt; background-color: #383838; color: white; padding: 40pt }
-        h1 { font-family: 'Metropolis', sans-serif; font-size: 36pt; color: black; }
+        body { font-family: 'Montserrat', serif; font-size:35pt; background-color: #383838; color: white; padding: 20pt }
         p { font-family: 'Roboto', sans-serif; font-size: 35pt }
-        a { color: red }
+        a { color: yellow }
         </style>
         </head>
         <body>\(bodyPart)</body>
         """
         return currentHTML
     }
-    
-    
 }

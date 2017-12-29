@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		9814D2231FF3ACB700282380 /* ModalPostViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9814D2221FF3ACB700282380 /* ModalPostViewController.swift */; };
+		981B63741FF66CE7002C67BF /* Extentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981B63731FF66CE7002C67BF /* Extentions.swift */; };
 		9852D4E61FF24CB900767007 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9852D4E51FF24CB900767007 /* AppDelegate.swift */; };
 		9852D4E81FF24CB900767007 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9852D4E71FF24CB900767007 /* MainViewController.swift */; };
 		9852D4EB1FF24CB900767007 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9852D4E91FF24CB900767007 /* Main.storyboard */; };
@@ -28,6 +29,7 @@
 
 /* Begin PBXFileReference section */
 		9814D2221FF3ACB700282380 /* ModalPostViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalPostViewController.swift; sourceTree = "<group>"; };
+		981B63731FF66CE7002C67BF /* Extentions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extentions.swift; sourceTree = "<group>"; };
 		9852D4E21FF24CB900767007 /* Tinkoff News.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Tinkoff News.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9852D4E51FF24CB900767007 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9852D4E71FF24CB900767007 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
@@ -59,6 +61,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		981B63751FF66CF2002C67BF /* PostView */ = {
+			isa = PBXGroup;
+			children = (
+				9814D2221FF3ACB700282380 /* ModalPostViewController.swift */,
+			);
+			path = PostView;
+			sourceTree = "<group>";
+		};
 		9852D4D91FF24CB900767007 = {
 			isa = PBXGroup;
 			children = (
@@ -79,10 +89,11 @@
 			isa = PBXGroup;
 			children = (
 				9852D50C1FF2B8D700767007 /* NewsListView */,
+				981B63751FF66CF2002C67BF /* PostView */,
 				9852D4FF1FF29D8400767007 /* Network */,
 				9852D4FA1FF24F1900767007 /* Resourses */,
 				9852D4E51FF24CB900767007 /* AppDelegate.swift */,
-				9814D2221FF3ACB700282380 /* ModalPostViewController.swift */,
+				981B63731FF66CE7002C67BF /* Extentions.swift */,
 				9852D4E91FF24CB900767007 /* Main.storyboard */,
 				9852D4EF1FF24CB900767007 /* Assets.xcassets */,
 				9852D5041FF29FF800767007 /* MediaAsset.xcassets */,
@@ -207,6 +218,7 @@
 				9852D5071FF2A5ED00767007 /* NewsListParser.swift in Sources */,
 				9852D50E1FF2B8F600767007 /* CustomNewsTableViewCellData.swift in Sources */,
 				9814D2231FF3ACB700282380 /* ModalPostViewController.swift in Sources */,
+				981B63741FF66CE7002C67BF /* Extentions.swift in Sources */,
 				9852D5091FF2A94C00767007 /* SinglePostParser.swift in Sources */,
 				9852D5031FF29E0F00767007 /* Requests.swift in Sources */,
 				9852D5011FF29DCF00767007 /* CustomNewsTableViewCellStyle.swift in Sources */,

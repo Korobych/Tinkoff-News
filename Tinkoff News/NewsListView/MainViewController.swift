@@ -40,6 +40,15 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
 //        plus animation of rotation is required
     }
     
+    @IBAction func upButtonClick(_ sender: Any) {
+        let indexPath = IndexPath(row: 0, section: 0)
+        self.newsTableView.scrollToRow(at: indexPath, at: .top, animated: true)
+        let desiredOffset = CGPoint(x: 0, y: -(self.navigationController?.navigationBar.frame.maxY)!)
+        newsTableView.setContentOffset(desiredOffset, animated: true)
+        
+    }
+    
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return newsListStorage.count
     }
@@ -52,6 +61,10 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         return 125
     }
     
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 125
+    }
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         // добавляем размытие фона вместе с открытием модульного окна
@@ -60,6 +73,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         self.overlayBlurredBackgroundView()
         self.selectedPost = indexPath.row
         self.fullPostsStorage[selectedPost].counter! += 1
+        self.fullPostsStorage[selectedPost].isViewed = true
         self.performSegue(withIdentifier: "showModalView", sender: self)
     }
     
@@ -67,8 +81,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         let cell = tableView.dequeueReusableCell(withIdentifier: "NewsCell", for: indexPath) as! CustomNewsTableViewCell
         if let post = newsListStorage[indexPath.row] {
             cell.setupCell(title: post?.text.html2String, counter: fullPostsStorage[indexPath.row].counter! , isViewed: fullPostsStorage[indexPath.row].isViewed)
-        }
-        
+        }        
         if indexPath.row == newsListStorage.count - 1{
             // realisation of pagination
             getNewsList(manual_update: false)
@@ -123,7 +136,8 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         }
     }
     
-    func counterFixer() {
+    func noInternetFixer() {
+        self.fullPostsStorage[selectedPost].isViewed = false
         self.fullPostsStorage[selectedPost].counter! -= 1
     }
 }
