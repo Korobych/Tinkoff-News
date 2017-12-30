@@ -41,10 +41,16 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     }
     
     @IBAction func upButtonClick(_ sender: Any) {
-        let indexPath = IndexPath(row: 0, section: 0)
-        self.newsTableView.scrollToRow(at: indexPath, at: .top, animated: true)
-        let desiredOffset = CGPoint(x: 0, y: -(self.navigationController?.navigationBar.frame.maxY)!)
-        newsTableView.setContentOffset(desiredOffset, animated: true)
+//        bring functionality for smart autoscroll
+        
+//        let desiredOffset = CGPoint(x: 0, y: -(self.navigationController?.navigationBar.frame.maxY)!)
+//        newsTableView.setContentOffset(desiredOffset, animated: true)
+        
+        // fixed bug if there is not data at all.
+        if fullPostsStorage.count != 0{
+            let indexPath = IndexPath(row: 0, section: 0)
+            self.newsTableView.scrollToRow(at: indexPath, at: .top, animated: true)
+        }
         
     }
     
@@ -72,8 +78,8 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         self.providesPresentationContextTransitionStyle = true
         self.overlayBlurredBackgroundView()
         self.selectedPost = indexPath.row
-        self.fullPostsStorage[selectedPost].counter! += 1
-        self.fullPostsStorage[selectedPost].isViewed = true
+//        self.fullPostsStorage[selectedPost].counter! += 1
+//        self.fullPostsStorage[selectedPost].isViewed = true
         self.performSegue(withIdentifier: "showModalView", sender: self)
     }
     
@@ -87,7 +93,20 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             getNewsList(manual_update: false)
         }
         return cell
-        
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration?
+    {
+        let unreadAction = UIContextualAction(style: .normal, title: "Unread") { (action, view, handler) in
+            self.fullPostsStorage[indexPath.row].isViewed = false
+            self.newsTableView.reloadRows(at: [indexPath], with: .none)
+            handler(true)
+            print("Unwatch swipe used")
+        }
+        unreadAction.backgroundColor = UIColor.blue
+        let configuration = UISwipeActionsConfiguration(actions: [unreadAction])
+        configuration.performsFirstActionWithFullSwipe = true
+        return configuration
     }
 
     
@@ -114,9 +133,10 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                     for (item, items) in data.enumerated()
                     {
                         // offers pagination
+                        // ?????????????????
                         self?.newsListStorage[item + number!] = items
                         //
-                        self?.fullPostsStorage.append(CustomNewsTableViewCellData(id: items.id, text: items.text.html2String, publicationDate: items.publicationDate, counter: 0, isViewed: false))
+                        self?.fullPostsStorage.append(CustomNewsTableViewCellData(id: items.id, title: items.text.html2String, content: nil, publicationDate: items.publicationDate, counter: 0, isViewed: false))
                     }
                     self?.syncButton.customView?.layer.removeAllAnimations()
                     self?.newsTableView.reloadData()
@@ -134,11 +154,6 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             self.present(self.internetFailAlert, animated: true, completion: nil)
             self.syncButton.customView?.layer.removeAllAnimations()
         }
-    }
-    
-    func noInternetFixer() {
-        self.fullPostsStorage[selectedPost].isViewed = false
-        self.fullPostsStorage[selectedPost].counter! -= 1
     }
 }
 
@@ -209,11 +224,8 @@ extension MainViewController {
                 if let viewController = segue.destination as? ModalPostViewController {
                     viewController.delegate = self
                     viewController.modalPresentationStyle = .overFullScreen
-                    // не обязательно
-                    viewController.listMass = fullPostsStorage
-                    //
-                    viewController.selectedTitle = fullPostsStorage[selectedPost].text
-                    viewController.selectedId = fullPostsStorage[selectedPost].id
+                    viewController.postsStorage = fullPostsStorage
+                    viewController.selectedId = selectedPost
                 }
             }
         }

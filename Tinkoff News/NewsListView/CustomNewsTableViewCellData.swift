@@ -10,7 +10,8 @@ import Foundation
 
 protocol NewsListCellProtocol: class{
     var id: Int? {get set}
-    var text: String? {get set}
+    var title: String? {get set}
+    var content: String? {get set}
     var publicationDate: String? {get set}
     var counter: Int? {get set}
     var isViewed: Bool {get set}
@@ -18,15 +19,17 @@ protocol NewsListCellProtocol: class{
 
 class CustomNewsTableViewCellData : NewsListCellProtocol{
     var id: Int?
-    var text: String?
+    var title: String?
+    var content: String?
     var publicationDate: String?
     var counter: Int?
     var isViewed: Bool
     
-    init(id: Int?, text: String?, publicationDate: Int?, counter: Int? = 0, isViewed: Bool = false)
+    init(id: Int?, title: String?, content: String?, publicationDate: Int?, counter: Int? = 0, isViewed: Bool = false)
     {
         self.id = id
-        self.text = text
+        self.title = title
+        self.content = content
         self.counter = counter
         self.isViewed = isViewed
         

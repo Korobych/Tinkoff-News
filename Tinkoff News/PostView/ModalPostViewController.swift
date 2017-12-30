@@ -12,25 +12,21 @@ import WebKit
 protocol ModalViewControllerDelegate: class {
     func removeBlurredBackgroundView()
     func refreshContent()
-    func noInternetFixer()
 }
 
-struct Post {
-
-    var id: Int!
-    var title: String?
-    var date: String?
-    var content: String?
-}
+//struct Post{
+//
+//    var id: Int!
+//    var title: String?
+//    var date: String?
+//    var content: String?
+//}
 
 class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, WKNavigationDelegate, UIScrollViewDelegate{
     
     weak var delegate: ModalViewControllerDelegate?
-    var postsMass: [Post] = []
-    var listMass: [CustomNewsTableViewCellData] = []
-    var modelMass: [SinglePostModel] = []
+    var postsStorage: [CustomNewsTableViewCellData] = []
     var selectedId: Int!
-    var selectedTitle: String?
     var requestSender: RequestSenderProtocol = RequestSender()
     
     
@@ -74,13 +70,20 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
     
     func loadContent() {
         activityIndicator.startAnimating()
-        let config = RequestsFactory.GetNewsFromAPI.SinglePostConfig(id: selectedId)
+        let config = RequestsFactory.GetNewsFromAPI.SinglePostConfig(id: postsStorage[selectedId].id!)
         requestSender.send(config: config) { [weak self] (result) in
             switch result {
             case .success(let data):
                 DispatchQueue.main.sync {
                     let interval = data.modificatedTime
-                    self?.postsMass.append(Post(id: self?.selectedId, title: self?.selectedTitle, date: interval.makeMilisecToDate(timeInMillisec: interval), content: data.postText))
+                    guard let postId = self?.selectedId
+                    else {
+                        print("some trouble in id getting")
+                        return
+                    }
+                    let post = self?.postsStorage[postId]
+                    post?.publicationDate = interval.makeMilisecToDate(timeInMillisec: interval)
+                    post?.content = data.postText
                     self?.showContent()
                 }
             case .error(let description):
@@ -90,11 +93,15 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
     }
     
     func showContent(){
-        dateLabel.text = postsMass.last?.date
-        titleLabel.text = postsMass.last?.title
-        guard let content = postsMass.last?.content else {return}
+        dateLabel.text = postsStorage[selectedId].publicationDate
+        titleLabel.text = postsStorage[selectedId].title
+        guard let content = postsStorage[selectedId].content else { return }
         let modifiedHtml = htmlPageConstruct(bodyPart: content)
         webView.loadHTMLString(modifiedHtml, baseURL: nil)
+        
+        self.postsStorage[selectedId].counter! += 1
+        self.postsStorage[selectedId].isViewed = true
+        
         self.activityIndicator.stopAnimating()
         self.activityIndicator.isHidden = true
     }
@@ -104,8 +111,6 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
             self.titleLabel.text = "Ошибка подключения. Нет соединения с интернетом"
             self.activityIndicator.stopAnimating()
             self.activityIndicator.isHidden = true
-            // function to decrease views counter
-            self.delegate?.noInternetFixer()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2){
             self.cancelButtonClicked(self)
