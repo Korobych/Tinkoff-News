@@ -29,7 +29,7 @@ extension News {
         
         var news: News?
         let fetchRequest: NSFetchRequest<News> = News.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "%K == %@", "id", id)
+        fetchRequest.predicate = NSPredicate(format: "id == %d", id)
         
         do {
             let results = try context.fetch(fetchRequest)

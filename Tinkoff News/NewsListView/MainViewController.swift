@@ -15,6 +15,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     var newsListStorage: [Int:NewsListModel?] = [:]
     var fullPostsStorage: [CustomNewsTableViewCellData] = []
     var requestSender: RequestSenderProtocol = RequestSender()
+    var coreDataStack = CoreDataStack()
     var refreshControl: UIRefreshControl!
     let internetFailAlert = UIAlertController(title: "Обновление данных", message: "Отсутствует подключение к сети.", preferredStyle: UIAlertControllerStyle.alert)
     var selectedPost: Int!
@@ -129,15 +130,32 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             switch result {
             case .success(let data):
                 let number = self?.newsListStorage.count
-                DispatchQueue.main.sync {
+                guard let saveContext = self?.coreDataStack.saveContext else {
+                    fatalError("Core data stack save context is nil!")
+                }
+                DispatchQueue.main.async {
                     for (item, items) in data.enumerated()
                     {
                         // offers pagination
                         // ?????????????????
                         self?.newsListStorage[item + number!] = items
                         //
-                        self?.fullPostsStorage.append(CustomNewsTableViewCellData(id: items.id, title: items.text.html2String, content: nil, publicationDate: items.publicationDate, counter: 0, isViewed: false))
+                        let singlePost = CustomNewsTableViewCellData(id: items.id, title: items.text.html2String, content: nil, publicationDate: items.publicationDate, counter: 0, isViewed: false)
+                        //
+                        guard let news = News.findOrInsertNews(in: saveContext, with: singlePost.id!) else {
+                            print("serious shit happens")
+                            return
+                        }
+                        news.title = singlePost.title
+                        news.counter = Int16(singlePost.counter!)
+                        news.publicationDate = singlePost.publicationDate
+                        news.isViewed = singlePost.isViewed
+                        //
+                        self?.fullPostsStorage.append(singlePost)
+                        
                     }
+                    
+                    self?.coreDataStack.performSave(context: saveContext, completionHandler: nil)
                     self?.syncButton.customView?.layer.removeAllAnimations()
                     self?.newsTableView.reloadData()
                     self?.from += 20

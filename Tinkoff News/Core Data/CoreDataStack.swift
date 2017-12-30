@@ -15,7 +15,7 @@ class CoreDataStack: NSObject {
     private var storeURL : URL {
         get {
             let documentDirURL : URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let url = documentDirURL.appendingPathComponent("Store.sqlite")
+            let url = documentDirURL.appendingPathComponent("Tinkoff_News.sqlite")
             return url
         }
     }
@@ -127,12 +127,14 @@ class CoreDataStack: NSObject {
             context.perform { [weak self] in
                 do {
                     try context.save()
+                    print("\nсейв прошёл на ура!\n")
                 } catch {
                     print("Context save error: \(error)")
                 }
                 
                 if let parent = context.parent {
                     self?.performSave(context: parent, completionHandler: completionHandler)
+                    print("\nи в parent тоже!\n")
                 } else {
                     completionHandler?()
                 }
