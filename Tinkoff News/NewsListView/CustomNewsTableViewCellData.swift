@@ -42,6 +42,15 @@ class CustomNewsTableViewCellData : NewsListCellProtocol{
             self.publicationDate = date
         }
     }
+    
+    init(id: Int?, title: String?, content: String?, publicationDate: String?, counter: Int?, isViewed: Bool = false) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.publicationDate = publicationDate
+        self.counter = counter
+        self.isViewed = isViewed
+    }
 }
 
 extension Int{

@@ -14,22 +14,13 @@ protocol ModalViewControllerDelegate: class {
     func refreshContent()
 }
 
-//struct Post{
-//
-//    var id: Int!
-//    var title: String?
-//    var date: String?
-//    var content: String?
-//}
-
 class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, WKNavigationDelegate, UIScrollViewDelegate{
     
     weak var delegate: ModalViewControllerDelegate?
     var postsStorage: [CustomNewsTableViewCellData] = []
     var selectedId: Int!
     var requestSender: RequestSenderProtocol = RequestSender()
-    
-    
+    var dataStack: CoreDataStack!
     
     @IBOutlet weak var modalView: UIView!
     
@@ -74,6 +65,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         requestSender.send(config: config) { [weak self] (result) in
             switch result {
             case .success(let data):
+                
                 DispatchQueue.main.sync {
                     let interval = data.modificatedTime
                     guard let postId = self?.selectedId
@@ -95,25 +87,47 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
     func showContent(){
         dateLabel.text = postsStorage[selectedId].publicationDate
         titleLabel.text = postsStorage[selectedId].title
+        
+        self.postsStorage[selectedId].counter! += 1
+        self.postsStorage[selectedId].isViewed = true
+        
+        // using core data to save context
+        guard let news = News.findOrInsertNews(in: dataStack.saveContext!, with: postsStorage[selectedId].id!) else {
+            print("bug splat")
+            return
+        }
+        news.publicationDate = postsStorage[selectedId].publicationDate
+        news.content = postsStorage[selectedId].content
+        news.counter = Int16(postsStorage[selectedId].counter!)
+        news.isViewed = postsStorage[selectedId].isViewed
+        
+        dataStack.saveContext?.perform {
+            self.dataStack.performSave(context: self.dataStack.saveContext!, completionHandler: nil)
+        }
+        
         guard let content = postsStorage[selectedId].content else { return }
         let modifiedHtml = htmlPageConstruct(bodyPart: content)
         webView.loadHTMLString(modifiedHtml, baseURL: nil)
         
-        self.postsStorage[selectedId].counter! += 1
-        self.postsStorage[selectedId].isViewed = true
         
         self.activityIndicator.stopAnimating()
         self.activityIndicator.isHidden = true
     }
     
     func showAlert() {
-        DispatchQueue.main.async {
-            self.titleLabel.text = "Ошибка подключения. Нет соединения с интернетом"
-            self.activityIndicator.stopAnimating()
-            self.activityIndicator.isHidden = true
+        // показываем контент, если он есть в памяти, иначе алёрт и закрываем окно
+        if postsStorage[selectedId].content != nil {
+            showContent()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2){
-            self.cancelButtonClicked(self)
+        else {
+            DispatchQueue.main.async {
+                self.titleLabel.text = "Нет соединения с интернетом. Контент не доступен в режиме оффлайн, скачайте его."
+                self.activityIndicator.stopAnimating()
+                self.activityIndicator.isHidden = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5){
+                self.cancelButtonClicked(self)
+            }
         }
     }
     
@@ -145,8 +159,8 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         <head>
         <link href='https://fonts.googleapis.com/css?family=Montserrat:medium' rel='stylesheet'>
         <style>
-        body { font-family: 'Montserrat', serif; font-size:35pt; background-color: #383838; color: white; padding: 20pt }
-        p { font-family: 'Roboto', sans-serif; font-size: 35pt }
+        body { font-family: 'Montserrat', serif; font-size:37pt; background-color: #383838; color: white; padding: 20pt }
+        p { font-family: 'Roboto', sans-serif; font-size: 37pt }
         a { color: yellow }
         </style>
         </head>

@@ -12,15 +12,15 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     @IBOutlet weak var newsTableView: UITableView!
     @IBOutlet weak var syncButton: UIBarButtonItem!
     
-    var newsListStorage: [Int:NewsListModel?] = [:]
     var fullPostsStorage: [CustomNewsTableViewCellData] = []
     var requestSender: RequestSenderProtocol = RequestSender()
     var coreDataStack = CoreDataStack()
     var refreshControl: UIRefreshControl!
-    let internetFailAlert = UIAlertController(title: "Обновление данных", message: "Отсутствует подключение к сети.", preferredStyle: UIAlertControllerStyle.alert)
+    let internetFailAlert = UIAlertController(title: "Оффлайн режим", message: "Отсутствует подключение к сети.", preferredStyle: UIAlertControllerStyle.alert)
     var selectedPost: Int!
     var from: Int = 0
     var to: Int = 20
+    var inOfflineMode: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,8 +42,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     }
     
     @IBAction func upButtonClick(_ sender: Any) {
-//        bring functionality for smart autoscroll
-        
+//        <<<bring functionality for smart autoscroll>>>
 //        let desiredOffset = CGPoint(x: 0, y: -(self.navigationController?.navigationBar.frame.maxY)!)
 //        newsTableView.setContentOffset(desiredOffset, animated: true)
         
@@ -57,7 +56,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return newsListStorage.count
+        return fullPostsStorage.count
     }
     
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -74,24 +73,29 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        // добавляем размытие фона вместе с открытием модульного окна
+        // background bluring while the module view is presenting
         self.definesPresentationContext = true
         self.providesPresentationContextTransitionStyle = true
         self.overlayBlurredBackgroundView()
         self.selectedPost = indexPath.row
-//        self.fullPostsStorage[selectedPost].counter! += 1
-//        self.fullPostsStorage[selectedPost].isViewed = true
         self.performSegue(withIdentifier: "showModalView", sender: self)
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "NewsCell", for: indexPath) as! CustomNewsTableViewCell
-        if let post = newsListStorage[indexPath.row] {
-            cell.setupCell(title: post?.text.html2String, counter: fullPostsStorage[indexPath.row].counter! , isViewed: fullPostsStorage[indexPath.row].isViewed)
-        }        
-        if indexPath.row == newsListStorage.count - 1{
+        let post = fullPostsStorage[indexPath.row]
+        
+        cell.setupCell(title: post.title, counter: post.counter! , isViewed: post.isViewed)
+        if indexPath.row == fullPostsStorage.count - 1{
             // realisation of pagination
-            getNewsList(manual_update: false)
+            // offline mode flag checking
+            if inOfflineMode == false {
+                getNewsList(manual_update: false)
+            } else {
+                //!!!!!!!!!!!!!!!!!!!
+                // upgrade core logic
+                print("it's offline mode and there is no more posts over there")
+            }
         }
         return cell
     }
@@ -101,6 +105,18 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         let unreadAction = UIContextualAction(style: .normal, title: "Unread") { (action, view, handler) in
             self.fullPostsStorage[indexPath.row].isViewed = false
             self.newsTableView.reloadRows(at: [indexPath], with: .none)
+            
+            // saving info about post that user desided to be unread
+            guard let news = News.findOrInsertNews(in: self.coreDataStack.saveContext!, with: self.fullPostsStorage[indexPath.row].id!) else {
+                print("bug splat")
+                return
+            }
+            news.isViewed = false
+            
+            self.coreDataStack.saveContext?.perform {
+                self.coreDataStack.performSave(context: self.coreDataStack.saveContext!, completionHandler: nil)
+            }
+            //handler
             handler(true)
             print("Unwatch swipe used")
         }
@@ -113,13 +129,11 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
     
     func getNewsList(manual_update: Bool) {
         syncButton.rotate()
-        if newsListStorage.count == 0{
+        if fullPostsStorage.count == 0{
             self.from = 0
             self.to = 20
         }
         if manual_update{
-            // upgrade logic
-            self.newsListStorage = [:]
             self.fullPostsStorage = []
             self.from = 0
             self.to = 20
@@ -129,29 +143,34 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         requestSender.send(config: config) { [weak self] (result) in
             switch result {
             case .success(let data):
-                let number = self?.newsListStorage.count
+                // rewrite with perform and read/write functions
+                self?.inOfflineMode = false
                 guard let saveContext = self?.coreDataStack.saveContext else {
                     fatalError("Core data stack save context is nil!")
                 }
                 DispatchQueue.main.async {
-                    for (item, items) in data.enumerated()
+                    for items in data
                     {
-                        // offers pagination
-                        // ?????????????????
-                        self?.newsListStorage[item + number!] = items
-                        //
                         let singlePost = CustomNewsTableViewCellData(id: items.id, title: items.text.html2String, content: nil, publicationDate: items.publicationDate, counter: 0, isViewed: false)
                         //
                         guard let news = News.findOrInsertNews(in: saveContext, with: singlePost.id!) else {
-                            print("serious shit happens")
+                            print("bug splat")
                             return
                         }
-                        news.title = singlePost.title
-                        news.counter = Int16(singlePost.counter!)
-                        news.publicationDate = singlePost.publicationDate
-                        news.isViewed = singlePost.isViewed
-                        //
-                        self?.fullPostsStorage.append(singlePost)
+                        if news.title == nil{
+                            news.title = singlePost.title
+                            news.counter = Int16(singlePost.counter!)
+                            news.publicationDate = singlePost.publicationDate
+                            news.isViewed = singlePost.isViewed
+                            
+                            self?.fullPostsStorage.append(singlePost)
+                        } else{
+                            
+                            singlePost.counter = Int(news.counter)
+                            singlePost.isViewed = news.isViewed
+                            
+                            self?.fullPostsStorage.append(singlePost)
+                        }
                         
                     }
                     
@@ -163,14 +182,43 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                 }
             case .error(let description):
                 print("Some error happend: \(description)")
+
             }
         }
     }
     
     func showAlert() {
         DispatchQueue.main.async {
-            self.present(self.internetFailAlert, animated: true, completion: nil)
             self.syncButton.customView?.layer.removeAllAnimations()
+            // no internet handling
+            self.coreDataStack.saveContext?.perform {
+                guard let news = try? News.findNews(in: self.coreDataStack.saveContext!)
+                    else {
+                        print("Completion error")
+                        return
+                }
+                if news.count == 0 {
+                    // case when core data is empty, generating custom alert
+                    let emptyCoreDataAlert = UIAlertController(title: "Отсутствие локальных записей", message: "Для получения данных подключитесь к сети.", preferredStyle: UIAlertControllerStyle.alert)
+                    emptyCoreDataAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil))
+                    self.present(emptyCoreDataAlert, animated: true, completion: nil)
+                    
+                }
+                else {
+                    self.inOfflineMode = true
+                    self.present(self.internetFailAlert, animated: true, completion: nil)
+                    print("локальное хранилище не пустое! тут  \(news.count) записей")
+                    print("первый элемент с верху \(String(describing: news[0]?.id))")
+                    for item in news{
+                        guard let intID = item?.id else { return }
+                        guard let intCounter = item?.counter else { return }
+                        self.fullPostsStorage.append(CustomNewsTableViewCellData(id: Int(intID), title: item?.title, content: item?.content, publicationDate: item?.publicationDate, counter: Int(intCounter), isViewed: (item?.isViewed)!))
+                    }
+                    DispatchQueue.main.async {
+                        self.newsTableView.reloadData()
+                    }
+                }
+            }
         }
     }
 }
@@ -203,7 +251,7 @@ extension MainViewController {
     // Настройка работы и + ее плавности refreshController'а
     @objc func refresh(refreshControl: UIRefreshControl) {
         getNewsList(manual_update: true)
-        let navBarHeight = (self.navigationController?.navigationBar.frame.size.height)!/2
+        let navBarHeight = (self.navigationController?.navigationBar.frame.size.height)!/2.5
         let navBarWidth = self.navigationController?.navigationBar.frame.size.width
         self.newsTableView.reloadData()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -244,6 +292,7 @@ extension MainViewController {
                     viewController.modalPresentationStyle = .overFullScreen
                     viewController.postsStorage = fullPostsStorage
                     viewController.selectedId = selectedPost
+                    viewController.dataStack = coreDataStack
                 }
             }
         }

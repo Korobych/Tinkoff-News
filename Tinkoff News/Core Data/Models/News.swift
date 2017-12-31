@@ -46,5 +46,24 @@ extension News {
         
         return news
     }
+    
+    static func findNews(in context: NSManagedObjectContext) -> [News?] {
+        
+        var newsMass: [News?] = []
+        let fetchRequest: NSFetchRequest<News> = News.fetchRequest()
+        let sectionSortDescriptor = NSSortDescriptor(key: "id", ascending: false)
+        fetchRequest.sortDescriptors = [sectionSortDescriptor]
+        
+        do {
+            let results = try context.fetch(fetchRequest)
+            print(results.count)
+            newsMass = results
+
+        } catch let error as NSError {
+            print("An error is fired: \(error.localizedDescription)")
+        }
+        
+        return newsMass
+    }
 }
 
