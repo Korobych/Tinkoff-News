@@ -36,16 +36,8 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         
     }
     
-    @IBAction func syncButtonTapped(_ sender: Any) {
-//        logic dedicated for manual sync the news
-//        plus animation of rotation is required
-    }
-    
     @IBAction func upButtonClick(_ sender: Any) {
-//        <<<bring functionality for smart autoscroll>>>
-//        let desiredOffset = CGPoint(x: 0, y: -(self.navigationController?.navigationBar.frame.maxY)!)
-//        newsTableView.setContentOffset(desiredOffset, animated: true)
-        
+        //<<<bring functionality for smart autoscroll>>>
         // fixed bug if there is not data at all.
         if fullPostsStorage.count != 0{
             let indexPath = IndexPath(row: 0, section: 0)
@@ -92,8 +84,6 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             if inOfflineMode == false {
                 getNewsList(manual_update: false)
             } else {
-                //!!!!!!!!!!!!!!!!!!!
-                // upgrade core logic
                 print("it's offline mode and there is no more posts over there")
             }
         }
@@ -108,7 +98,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             
             // saving info about post that user desided to be unread
             guard let news = News.findOrInsertNews(in: self.coreDataStack.saveContext!, with: self.fullPostsStorage[indexPath.row].id!) else {
-                print("bug splat")
+                print("can't extract or insert current news")
                 return
             }
             news.isViewed = false
@@ -152,9 +142,8 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                     for items in data
                     {
                         let singlePost = CustomNewsTableViewCellData(id: items.id, title: items.text.html2String, content: nil, publicationDate: items.publicationDate, counter: 0, isViewed: false)
-                        //
                         guard let news = News.findOrInsertNews(in: saveContext, with: singlePost.id!) else {
-                            print("bug splat")
+                            print("can't extract or insert current news")
                             return
                         }
                         if news.title == nil{
@@ -168,6 +157,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                             
                             singlePost.counter = Int(news.counter)
                             singlePost.isViewed = news.isViewed
+                            singlePost.content = news.content
                             
                             self?.fullPostsStorage.append(singlePost)
                         }
@@ -192,11 +182,7 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             self.syncButton.customView?.layer.removeAllAnimations()
             // no internet handling
             self.coreDataStack.saveContext?.perform {
-                guard let news = try? News.findNews(in: self.coreDataStack.saveContext!)
-                    else {
-                        print("Completion error")
-                        return
-                }
+                let news = News.findNews(in: self.coreDataStack.saveContext!)
                 if news.count == 0 {
                     // case when core data is empty, generating custom alert
                     let emptyCoreDataAlert = UIAlertController(title: "Отсутствие локальных записей", message: "Для получения данных подключитесь к сети.", preferredStyle: UIAlertControllerStyle.alert)
@@ -206,18 +192,43 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
                 }
                 else {
                     self.inOfflineMode = true
-                    self.present(self.internetFailAlert, animated: true, completion: nil)
                     print("локальное хранилище не пустое! тут  \(news.count) записей")
                     print("первый элемент с верху \(String(describing: news[0]?.id))")
-                    for item in news{
-                        guard let intID = item?.id else { return }
-                        guard let intCounter = item?.counter else { return }
-                        self.fullPostsStorage.append(CustomNewsTableViewCellData(id: Int(intID), title: item?.title, content: item?.content, publicationDate: item?.publicationDate, counter: Int(intCounter), isViewed: (item?.isViewed)!))
+                    
+                    if self.fullPostsStorage.count == 0{
+                        self.present(self.internetFailAlert, animated: true, completion: nil)
+                        for item in news{
+                            guard let intID = item?.id else { return }
+                            guard let intCounter = item?.counter else { return }
+                            self.fullPostsStorage.append(CustomNewsTableViewCellData(id: Int(intID), title: item?.title, content: item?.content, publicationDate: item?.publicationDate, counter: Int(intCounter), isViewed: (item?.isViewed)!))
+                        }
+                        DispatchQueue.main.async {
+                            self.newsTableView.reloadData()
+                        }
                     }
-                    DispatchQueue.main.async {
-                        self.newsTableView.reloadData()
+                    else{
+                        // case when user just scrolled down and waiting for new portion of news, but the internet connection is lost and we force to show cached content
+                        DispatchQueue.main.async {
+                            let reloadAlert = UIAlertController(title: "Интернет соединение потеряно!", message: "Обновите таблицу для доступа к оффлайн режиму", preferredStyle: UIAlertControllerStyle.alert)
+                            self.present(reloadAlert, animated: true, completion: nil)
+                            
+                            let when = DispatchTime.now() + 2.5
+                            DispatchQueue.main.asyncAfter(deadline: when){
+                                reloadAlert.dismiss(animated: true, completion: nil)
+                            }
+                        }
                     }
                 }
+            }
+        }
+    }
+    
+    func disableOfflineMode() {
+        DispatchQueue.main.async {
+            if self.inOfflineMode == true {
+                self.inOfflineMode = false
+                self.getNewsList(manual_update: true)
+                self.newsTableView.reloadData()
             }
         }
     }
@@ -248,7 +259,7 @@ extension MainViewController {
         newsTableView.refreshControl = refreshControl
     }
     
-    // Настройка работы и + ее плавности refreshController'а
+    // Настройка работы + плавности refreshController'а
     @objc func refresh(refreshControl: UIRefreshControl) {
         getNewsList(manual_update: true)
         let navBarHeight = (self.navigationController?.navigationBar.frame.size.height)!/2.5
@@ -293,47 +304,10 @@ extension MainViewController {
                     viewController.postsStorage = fullPostsStorage
                     viewController.selectedId = selectedPost
                     viewController.dataStack = coreDataStack
+                    viewController.inOfflineMode = inOfflineMode
                 }
             }
         }
-    }
-
-
-}
-// Кейс добавления анимации для элемента UIBarButtonItem
-extension UIBarButtonItem {
-    func rotate(duration: CFTimeInterval = 3) {
-        let rotateAnimation = CABasicAnimation(keyPath: "transform.rotation")
-        rotateAnimation.fromValue = 0.0
-        rotateAnimation.toValue = CGFloat(Double.pi * 2)
-        rotateAnimation.isRemovedOnCompletion = false
-        rotateAnimation.duration = duration
-        rotateAnimation.repeatCount = Float.infinity
-        self.customView?.layer.add(rotateAnimation, forKey: nil)
-        
-    }
-}
-// Исключения для обработки кейса наличия html-alike тайтлов из API
-extension Data {
-    var html2AttributedString: NSAttributedString? {
-        do {
-            return try NSAttributedString(data: self, options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue], documentAttributes: nil)
-        } catch {
-            print("error:", error)
-            return  nil
-        }
-    }
-    var html2String: String {
-        return html2AttributedString?.string ?? ""
-    }
-}
-
-extension String {
-    var html2AttributedString: NSAttributedString? {
-        return Data(utf8).html2AttributedString
-    }
-    var html2String: String {
-        return html2AttributedString?.string ?? ""
     }
 }
 

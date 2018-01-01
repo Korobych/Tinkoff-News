@@ -113,9 +113,6 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="sync_ico"/>
                             </button>
-                            <connections>
-                                <action selector="syncButtonTapped:" destination="BYZ-38-t0r" id="9dR-e7-YBJ"/>
-                            </connections>
                         </barButtonItem>
                     </navigationItem>
                     <connections>

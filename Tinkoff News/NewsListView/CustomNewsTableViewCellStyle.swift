@@ -18,7 +18,7 @@ class CustomNewsTableViewCell: UITableViewCell {
         counterLabel.text = String(counter)
         if isViewed {
             // Logic with fading already seen posts
-            UIView.animate(withDuration: 1, animations: {
+            UIView.animate(withDuration: 0.5, animations: {
                 self.postTitle.alpha = 0.3
             })
         }

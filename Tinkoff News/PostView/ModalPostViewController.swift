@@ -12,6 +12,7 @@ import WebKit
 protocol ModalViewControllerDelegate: class {
     func removeBlurredBackgroundView()
     func refreshContent()
+    func disableOfflineMode()
 }
 
 class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, WKNavigationDelegate, UIScrollViewDelegate{
@@ -21,6 +22,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
     var selectedId: Int!
     var requestSender: RequestSenderProtocol = RequestSender()
     var dataStack: CoreDataStack!
+    var inOfflineMode: Bool!
     
     @IBOutlet weak var modalView: UIView!
     
@@ -65,8 +67,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         requestSender.send(config: config) { [weak self] (result) in
             switch result {
             case .success(let data):
-                
-                DispatchQueue.main.sync {
+                DispatchQueue.main.async {
                     let interval = data.modificatedTime
                     guard let postId = self?.selectedId
                     else {
@@ -77,6 +78,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
                     post?.publicationDate = interval.makeMilisecToDate(timeInMillisec: interval)
                     post?.content = data.postText
                     self?.showContent()
+                    self?.delegate?.disableOfflineMode()
                 }
             case .error(let description):
                 print("Some error happend: \(description)")
@@ -93,7 +95,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         
         // using core data to save context
         guard let news = News.findOrInsertNews(in: dataStack.saveContext!, with: postsStorage[selectedId].id!) else {
-            print("bug splat")
+            print("can't extract or insert current news")
             return
         }
         news.publicationDate = postsStorage[selectedId].publicationDate
@@ -121,7 +123,10 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         }
         else {
             DispatchQueue.main.async {
-                self.titleLabel.text = "Нет соединения с интернетом. Контент не доступен в режиме оффлайн, скачайте его."
+                self.titleLabel.text = """
+                Нет соединения с интернетом.
+                Контент не доступен в режиме оффлайн, скачайте его.
+                """
                 self.activityIndicator.stopAnimating()
                 self.activityIndicator.isHidden = true
             }
@@ -140,16 +145,13 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
                 print(url)
                 print("Redirected to browser. No need to open it locally")
                 decisionHandler(.cancel)
-            } else {
-                print("Open it locally")
-                decisionHandler(.allow)
             }
         } else {
-            print("not a user click")
+            print("post open link, opening it locally")
             decisionHandler(.allow)
         }
     }
-    
+    // disable scale tap gesture for user for proper wkwebview usage
     func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
         scrollView.pinchGestureRecognizer?.isEnabled = false
     }
@@ -159,7 +161,7 @@ class ModalPostViewController: UIViewController, RequestSenderDelegateProtocol, 
         <head>
         <link href='https://fonts.googleapis.com/css?family=Montserrat:medium' rel='stylesheet'>
         <style>
-        body { font-family: 'Montserrat', serif; font-size:37pt; background-color: #383838; color: white; padding: 20pt }
+        body { font-family: 'Montserrat', serif; font-size: 37pt; background-color: #383838; color: white; padding: 10pt }
         p { font-family: 'Roboto', sans-serif; font-size: 37pt }
         a { color: yellow }
         </style>

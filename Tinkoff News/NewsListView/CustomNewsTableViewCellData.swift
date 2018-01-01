@@ -52,13 +52,3 @@ class CustomNewsTableViewCellData : NewsListCellProtocol{
         self.isViewed = isViewed
     }
 }
-
-extension Int{
-    func makeMilisecToDate(timeInMillisec: Int) -> String
-    {
-        let timeInterval = Date(timeIntervalSince1970: (TimeInterval(timeInMillisec / 1000)))
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEEE, MMM d, yyyy"
-        return dateFormatter.string(from: timeInterval)
-    }
-}
